@@ -766,6 +766,23 @@
       }
     });
 
+    var btnLfDec = document.getElementById('btn-lesson-font-decrease');
+    var btnLfInc = document.getElementById('btn-lesson-font-increase');
+    if (btnLfDec) btnLfDec.addEventListener('click', function () {
+      if ((state.settings.lessonFontSize || 15) > 12) {
+        state.settings.lessonFontSize = (state.settings.lessonFontSize || 15) - 1;
+        applyLessonFontSize();
+        saveSettings();
+      }
+    });
+    if (btnLfInc) btnLfInc.addEventListener('click', function () {
+      if ((state.settings.lessonFontSize || 15) < 24) {
+        state.settings.lessonFontSize = (state.settings.lessonFontSize || 15) + 1;
+        applyLessonFontSize();
+        saveSettings();
+      }
+    });
+
     document.getElementById('timeout-select').addEventListener('change', function (e) {
       state.settings.timeout = parseInt(e.target.value);
       saveSettings();
@@ -824,6 +841,16 @@
     // Set initial values
     document.getElementById('font-size-display').textContent = state.settings.fontSize + 'px';
     document.getElementById('timeout-select').value = state.settings.timeout.toString();
+    applyLessonFontSize();
+  }
+
+  function revealHintsSuccess() {
+    var hintsEl = document.getElementById('exercise-hints');
+    if (!hintsEl) return;
+    hintsEl.querySelectorAll('.exercise-hint').forEach(function (h) {
+      h.classList.remove('hidden-text');
+      h.classList.add('revealed');
+    });
   }
 
   // =========================================================================
