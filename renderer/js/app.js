@@ -386,9 +386,10 @@
   // Theme
   // =========================================================================
   function applyTheme() {
-    document.documentElement.setAttribute('data-theme', state.settings.theme);
-    var checkbox = document.getElementById('theme-checkbox');
-    if (checkbox) checkbox.checked = state.settings.theme === 'light';
+    var theme = state.settings.theme || 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+    var sel = document.getElementById('theme-select');
+    if (sel) sel.value = theme;
   }
 
   // =========================================================================
@@ -490,7 +491,7 @@
       state.editor = monaco.editor.create(container, {
         value: '// Welcome to C++ Mastery!\n// Select a lesson to start coding.\n\n#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello, C++!" << endl;\n    return 0;\n}\n',
         language: 'cpp',
-        theme: state.settings.theme === 'dark' ? 'cpp-mastery-dark' : 'cpp-mastery-light',
+        theme: (state.settings.theme === 'light' || state.settings.theme === 'vscode-light') ? 'cpp-mastery-light' : 'cpp-mastery-dark',
         fontSize: state.settings.fontSize,
         fontFamily: "'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace",
         fontLigatures: true,
@@ -600,10 +601,49 @@
       });
     });
 
-    // Sidebar toggle
+    // Sidebar toggle (persisted)
+    var sidebarEl = document.getElementById('sidebar');
+    try {
+      if (localStorage.getItem('cppm-sidebar-collapsed') === '1') sidebarEl.classList.add('collapsed');
+    } catch (e) {}
     document.getElementById('sidebar-toggle').addEventListener('click', function () {
-      document.getElementById('sidebar').classList.toggle('collapsed');
+      sidebarEl.classList.toggle('collapsed');
+      try { localStorage.setItem('cppm-sidebar-collapsed', sidebarEl.classList.contains('collapsed') ? '1' : '0'); } catch (e) {}
+      if (state.editor && state.editor.layout) setTimeout(function () { state.editor.layout(); }, 220);
     });
+
+    // Ctrl+Wheel: scale editor font size
+    var editorContainer = document.getElementById('monaco-container');
+    if (editorContainer) {
+      editorContainer.addEventListener('wheel', function (e) {
+        if (!(e.ctrlKey || e.metaKey)) return;
+        e.preventDefault();
+        var delta = e.deltaY < 0 ? 1 : -1;
+        var next = Math.max(10, Math.min(28, (state.settings.fontSize || 14) + delta));
+        if (next !== state.settings.fontSize) {
+          state.settings.fontSize = next;
+          updateEditorFontSize();
+          saveSettings();
+        }
+      }, { passive: false });
+    }
+
+    // Ctrl+Wheel: scale lesson body font size
+    var lessonScroll = document.getElementById('lesson-content-scroll');
+    if (lessonScroll) {
+      lessonScroll.addEventListener('wheel', function (e) {
+        if (!(e.ctrlKey || e.metaKey)) return;
+        e.preventDefault();
+        var delta = e.deltaY < 0 ? 1 : -1;
+        var cur = state.settings.lessonFontSize || 15;
+        var next = Math.max(12, Math.min(26, cur + delta));
+        if (next !== cur) {
+          state.settings.lessonFontSize = next;
+          applyLessonFontSize();
+          saveSettings();
+        }
+      }, { passive: false });
+    }
 
     // Search
     var searchInput = document.getElementById('search-input');
@@ -743,12 +783,16 @@
     initResizeHandle();
 
     // Settings
-    document.getElementById('theme-checkbox').addEventListener('change', function (e) {
-      state.settings.theme = e.target.checked ? 'light' : 'dark';
-      applyTheme();
-      updateEditorTheme();
-      saveSettings();
-    });
+    var themeSelect = document.getElementById('theme-select');
+    if (themeSelect) {
+      themeSelect.value = state.settings.theme || 'dark';
+      themeSelect.addEventListener('change', function (e) {
+        state.settings.theme = e.target.value;
+        applyTheme();
+        updateEditorTheme();
+        saveSettings();
+      });
+    }
 
     document.getElementById('btn-font-decrease').addEventListener('click', function () {
       if (state.settings.fontSize > 10) {
@@ -1279,12 +1323,13 @@
         if (idx === 0) hintsEl.id = 'exercise-hints';
         else hintsEl.removeAttribute('id');
         hintsEl.innerHTML = '';
+        var exDone = isExerciseCompleted(lessonId, idx);
         if (ex.hints && ex.hints.length > 0) {
           ex.hints.forEach(function (hint) {
             var hintDiv = document.createElement('div');
-            hintDiv.className = 'exercise-hint hidden-text';
+            hintDiv.className = 'exercise-hint' + (exDone ? ' revealed' : ' hidden-text');
             hintDiv.innerHTML = '<span>' + escapeHtml(hint) + '</span>';
-            hintDiv.title = 'Hover to reveal hint';
+            hintDiv.title = exDone ? 'Completed' : 'Hover to reveal hint';
             hintsEl.appendChild(hintDiv);
           });
         }
@@ -1297,6 +1342,8 @@
           btn.id = 'btn-load-exercise-' + idx;
           btn.textContent = 'Load Exercise ' + (idx + 1) + ' in Editor →';
         }
+
+        if (exDone) card.classList.add('exercise-card-completed');
 
         exerciseSection.appendChild(card);
       });
@@ -2161,7 +2208,7 @@
   function renderPractice(difficulty) {
     var grid = document.getElementById('practice-grid');
     grid.innerHTML = '';
-    grid.classList.add('stagger-children');
+    grid.classList.remove('stagger-children');
 
     var lessons = getAllLessons().filter(function (l) {
       var exList = normalizeExerciseData(l);
@@ -2180,36 +2227,64 @@
       return;
     }
 
-    lessons.forEach(function (lesson) {
-      var exList = normalizeExerciseData(lesson);
-      var card = document.createElement('div');
-      card.className = 'practice-card glass-card' + (isExerciseCompleted(lesson.id) ? ' completed' : '');
+    // Group by chapter
+    var groups = {};
+    var order = [];
+    lessons.forEach(function (l) {
+      var key = String(l.chapterId);
+      if (!groups[key]) {
+        groups[key] = { chapterId: l.chapterId, chapterTitle: l.chapterTitle, chapterIcon: l.chapterIcon, lessons: [] };
+        order.push(key);
+      }
+      groups[key].lessons.push(l);
+    });
+    order.sort(function (a, b) { return Number(a) - Number(b); });
 
-      var isDone = isExerciseCompleted(lesson.id);
+    order.forEach(function (key) {
+      var g = groups[key];
+      var section = document.createElement('section');
+      section.className = 'practice-chapter-group';
+      section.innerHTML =
+        '<header class="practice-chapter-header">' +
+          '<span class="practice-chapter-icon">' + (g.chapterIcon || '📘') + '</span>' +
+          '<div>' +
+            '<div class="practice-chapter-eyebrow">Chapter ' + g.chapterId + '</div>' +
+            '<h2 class="practice-chapter-title">' + escapeHtml(g.chapterTitle || '') + '</h2>' +
+          '</div>' +
+          '<span class="practice-chapter-count">' + g.lessons.length + ' exercise' + (g.lessons.length !== 1 ? 's' : '') + '</span>' +
+        '</header>' +
+        '<div class="practice-chapter-grid stagger-children"></div>';
+      var chGrid = section.querySelector('.practice-chapter-grid');
 
-      var badgeHtml = exList.length > 1 ? '<span class="practice-ex-count" style="font-size:0.7em; background:var(--bg-secondary); padding:2px 6px; border-radius:10px; margin-left:8px;">' + exList.length + ' exercises</span>' : '';
+      g.lessons.forEach(function (lesson) {
+        var exList = normalizeExerciseData(lesson);
+        var card = document.createElement('div');
+        var isDone = isExerciseCompleted(lesson.id);
+        card.className = 'practice-card glass-card' + (isDone ? ' completed' : '');
+        var badgeHtml = exList.length > 1 ? '<span class="practice-ex-count">' + exList.length + ' exercises</span>' : '';
 
-      card.innerHTML =
-        '<div class="practice-card-chapter">Chapter ' + lesson.chapterId + '</div>' +
-        '<div class="practice-card-title">' + escapeHtml(lesson.title) + badgeHtml + '</div>' +
-        '<div class="practice-card-instruction">' + escapeHtml(exList[0].instruction) + '</div>' +
-        '<div class="practice-card-footer">' +
-          '<span class="practice-card-difficulty ' + (lesson.difficulty || 'beginner') + '">' + capitalize(lesson.difficulty || 'beginner') + '</span>' +
-          '<span class="practice-card-status">' + (isDone ? '✅' : '⬜') + '</span>' +
-        '</div>';
+        card.innerHTML =
+          '<div class="practice-card-title">' + escapeHtml(lesson.title) + badgeHtml + '</div>' +
+          '<div class="practice-card-instruction">' + escapeHtml(exList[0].instruction) + '</div>' +
+          '<div class="practice-card-footer">' +
+            '<span class="practice-card-difficulty ' + (lesson.difficulty || 'beginner') + '">' + capitalize(lesson.difficulty || 'beginner') + '</span>' +
+            '<span class="practice-card-status">' + (isDone ? '✓ Completed' : '○ Not started') + '</span>' +
+          '</div>';
 
-      card.addEventListener('click', function () {
-        openLesson(lesson.id);
-        setTimeout(function () {
-          setEditorCode(exList[0].starterCode);
-          state.originalCode = exList[0].starterCode;
-          state.editorMode = 'exercise';
-          state.activeExerciseIndex = 0;
-          state.openEndedRunCompleted = false;
-        }, 200);
+        card.addEventListener('click', function () {
+          openLesson(lesson.id);
+          setTimeout(function () {
+            setEditorCode(exList[0].starterCode);
+            state.originalCode = exList[0].starterCode;
+            state.editorMode = 'exercise';
+            state.activeExerciseIndex = 0;
+            state.openEndedRunCompleted = false;
+          }, 200);
+        });
+
+        chGrid.appendChild(card);
       });
-
-      grid.appendChild(card);
+      grid.appendChild(section);
     });
   }
 
@@ -2315,9 +2390,13 @@
   // =========================================================================
   // Editor Settings
   // =========================================================================
+  function isLightTheme() {
+    var t = state.settings.theme;
+    return t === 'light' || t === 'vscode-light';
+  }
   function updateEditorTheme() {
     if (state.editor && state.editor.updateOptions) {
-      var theme = state.settings.theme === 'dark' ? 'cpp-mastery-dark' : 'cpp-mastery-light';
+      var theme = isLightTheme() ? 'cpp-mastery-light' : 'cpp-mastery-dark';
       monaco.editor.setTheme(theme);
     }
   }
