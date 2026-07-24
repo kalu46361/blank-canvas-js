@@ -2320,9 +2320,13 @@
   // =========================================================================
   // Editor Settings
   // =========================================================================
+  function isLightTheme() {
+    var t = state.settings.theme;
+    return t === 'light' || t === 'vscode-light';
+  }
   function updateEditorTheme() {
     if (state.editor && state.editor.updateOptions) {
-      var theme = state.settings.theme === 'dark' ? 'cpp-mastery-dark' : 'cpp-mastery-light';
+      var theme = isLightTheme() ? 'cpp-mastery-light' : 'cpp-mastery-dark';
       monaco.editor.setTheme(theme);
     }
   }
