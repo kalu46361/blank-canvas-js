@@ -1,0 +1,103 @@
+{
+  "schemaVersion": "2.0",
+  "architecture": "modular-iife",
+  "tiers": [
+    "Foundations",
+    "Structured Programming",
+    "Data Abstraction",
+    "Pointers and Polymorphism",
+    "Modern C++",
+    "Applied C++",
+    "Advanced Topics"
+  ],
+  "observedDifficultyValues": [
+    "beginner",
+    "intermediate",
+    "advanced",
+    "expert"
+  ],
+  "chapterIdRules": {
+    "type": "integer",
+    "unique": true,
+    "sequential": true
+  },
+  "lessonIdPattern": "^ch\\d+-l\\d+$",
+  "requiredChapterFields": [
+    "id",
+    "title",
+    "icon",
+    "lessons"
+  ],
+  "requiredLessonFields": [
+    "id",
+    "title",
+    "difficulty",
+    "content",
+    "codeExample"
+  ],
+  "exerciseSchema": {
+    "requiredFields": [
+      "instruction",
+      "starterCode",
+      "exerciseType"
+    ],
+    "optionalFields": [
+      "expectedOutput",
+      "hints",
+      "stdinFixture"
+    ]
+  },
+  "quizSchema": {
+    "requiredFields": [
+      "question",
+      "options",
+      "correctIndex",
+      "explanation"
+    ],
+    "rules": {
+      "minimumOptions": 2,
+      "correctIndexType": "integer",
+      "correctIndexBounds": "0 <= correctIndex < options.length"
+    }
+  },
+  "minimumLessonsPerChapter": 2,
+  "recommendedLessonsPerChapter": [
+    3,
+    5
+  ],
+  "recommendedMaximumLessonsPerChapter": 7,
+  "minimumQuizzesPerLesson": 2,
+  "recommendedQuizzesPerLesson": [
+    2,
+    3
+  ],
+  "chapterFileWarningSizeBytes": 35840,
+  "oneChapterPerGenerationSession": true,
+  "reservedChapterIds": [
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
+  "_reservedChapterIdsDescription": [
+    "PROJECT METADATA: This field is NOT enforced by validate_curriculum.js.",
+    "It tracks which legacy curriculum chapter IDs are still awaiting a completed Schema v2 replacement.",
+    "When a Schema v2 replacement chapter has passed the required audit process and been committed to the main branch, remove its legacy ID from reservedChapterIds.",
+    "This field exists only to track migration progress during the Schema v2 curriculum rewrite.",
+    "It does NOT indicate which curriculum the application currently loads.",
+    "The live application continues using the legacy curriculum until the Phase F Atomic Cutover.",
+    "During Phase F the application will switch to renderer/lesson-data/chapters/, after which this field is expected to become obsolete and may be removed."
+    "This list refers only to the 15 legacy curriculum chapters. It is not related to the numbering of the 34-chapter Schema v2 curriculum."	
+  ],
+  "optionalLessonFields": [
+    "expectedOutput",
+    "stdinFixture",
+    "exercises",
+    "quiz",
+    "exercise"
+  ]
+}
