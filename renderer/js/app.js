@@ -1323,12 +1323,13 @@
         if (idx === 0) hintsEl.id = 'exercise-hints';
         else hintsEl.removeAttribute('id');
         hintsEl.innerHTML = '';
+        var exDone = isExerciseCompleted(lessonId, idx);
         if (ex.hints && ex.hints.length > 0) {
           ex.hints.forEach(function (hint) {
             var hintDiv = document.createElement('div');
-            hintDiv.className = 'exercise-hint hidden-text';
+            hintDiv.className = 'exercise-hint' + (exDone ? ' revealed' : ' hidden-text');
             hintDiv.innerHTML = '<span>' + escapeHtml(hint) + '</span>';
-            hintDiv.title = 'Hover to reveal hint';
+            hintDiv.title = exDone ? 'Completed' : 'Hover to reveal hint';
             hintsEl.appendChild(hintDiv);
           });
         }
@@ -1341,6 +1342,8 @@
           btn.id = 'btn-load-exercise-' + idx;
           btn.textContent = 'Load Exercise ' + (idx + 1) + ' in Editor →';
         }
+
+        if (exDone) card.classList.add('exercise-card-completed');
 
         exerciseSection.appendChild(card);
       });
