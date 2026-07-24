@@ -146,12 +146,14 @@
       completedLessons: [],
       completedExercises: [],
       completedQuizzes: [],
+      quizAnswers: {},
       runsCount: 0,
     },
     bookmarks: [],
     settings: {
       theme: 'dark',
       fontSize: 14,
+      lessonFontSize: 15,
       timeout: 10000,
     },
     streak: {
@@ -168,6 +170,7 @@
   async function init() {
     loadState();
     applyTheme();
+    applyLessonFontSize();
     bindUIEvents();
     initIpcListeners();
     initVerticalResizeHandle();
@@ -175,6 +178,7 @@
     initMonaco();
     renderDashboard();
     updateSidebarStats();
+
 
     // Hide loading screen
     setTimeout(function () {
@@ -194,7 +198,11 @@
   function loadState() {
     try {
       var p = localStorage.getItem(STORAGE_KEYS.PROGRESS);
-      if (p) state.progress = JSON.parse(p);
+      if (p) {
+        var parsed = JSON.parse(p);
+        state.progress = Object.assign(state.progress, parsed);
+        if (!state.progress.quizAnswers) state.progress.quizAnswers = {};
+      }
 
       var b = localStorage.getItem(STORAGE_KEYS.BOOKMARKS);
       if (b) state.bookmarks = JSON.parse(b);
@@ -213,6 +221,13 @@
     } catch (e) {
       console.warn('Failed to load state:', e);
     }
+  }
+
+  function applyLessonFontSize() {
+    var sz = state.settings.lessonFontSize || 15;
+    document.documentElement.style.setProperty('--lesson-fs', sz + 'px');
+    var disp = document.getElementById('lesson-font-size-display');
+    if (disp) disp.textContent = sz + 'px';
   }
 
   function saveProgress() {
