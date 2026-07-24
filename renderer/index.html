@@ -447,16 +447,16 @@
             <div class="setting-item">
               <div class="setting-info">
                 <span class="setting-label">Theme</span>
-                <span class="setting-desc">Switch between dark and light mode</span>
+                <span class="setting-desc">Choose your preferred color scheme</span>
               </div>
-              <div class="theme-toggle" id="theme-toggle">
-                <span class="toggle-label">Dark</span>
-                <label class="toggle-switch">
-                  <input type="checkbox" id="theme-checkbox">
-                  <span class="toggle-slider"></span>
-                </label>
-                <span class="toggle-label">Light</span>
-              </div>
+              <select id="theme-select" class="select-input">
+                <option value="dark">Default Dark (Midnight Indigo)</option>
+                <option value="light">Default Light</option>
+                <option value="vscode-dark">VS Code Dark+</option>
+                <option value="vscode-light">VS Code Light</option>
+                <option value="nord">Nord</option>
+                <option value="solarized-dark">Solarized Dark</option>
+              </select>
             </div>
             <div class="setting-item">
               <div class="setting-info">
