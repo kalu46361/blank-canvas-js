@@ -601,10 +601,49 @@
       });
     });
 
-    // Sidebar toggle
+    // Sidebar toggle (persisted)
+    var sidebarEl = document.getElementById('sidebar');
+    try {
+      if (localStorage.getItem('cppm-sidebar-collapsed') === '1') sidebarEl.classList.add('collapsed');
+    } catch (e) {}
     document.getElementById('sidebar-toggle').addEventListener('click', function () {
-      document.getElementById('sidebar').classList.toggle('collapsed');
+      sidebarEl.classList.toggle('collapsed');
+      try { localStorage.setItem('cppm-sidebar-collapsed', sidebarEl.classList.contains('collapsed') ? '1' : '0'); } catch (e) {}
+      if (state.editor && state.editor.layout) setTimeout(function () { state.editor.layout(); }, 220);
     });
+
+    // Ctrl+Wheel: scale editor font size
+    var editorContainer = document.getElementById('monaco-container');
+    if (editorContainer) {
+      editorContainer.addEventListener('wheel', function (e) {
+        if (!(e.ctrlKey || e.metaKey)) return;
+        e.preventDefault();
+        var delta = e.deltaY < 0 ? 1 : -1;
+        var next = Math.max(10, Math.min(28, (state.settings.fontSize || 14) + delta));
+        if (next !== state.settings.fontSize) {
+          state.settings.fontSize = next;
+          updateEditorFontSize();
+          saveSettings();
+        }
+      }, { passive: false });
+    }
+
+    // Ctrl+Wheel: scale lesson body font size
+    var lessonScroll = document.getElementById('lesson-content-scroll');
+    if (lessonScroll) {
+      lessonScroll.addEventListener('wheel', function (e) {
+        if (!(e.ctrlKey || e.metaKey)) return;
+        e.preventDefault();
+        var delta = e.deltaY < 0 ? 1 : -1;
+        var cur = state.settings.lessonFontSize || 15;
+        var next = Math.max(12, Math.min(26, cur + delta));
+        if (next !== cur) {
+          state.settings.lessonFontSize = next;
+          applyLessonFontSize();
+          saveSettings();
+        }
+      }, { passive: false });
+    }
 
     // Search
     var searchInput = document.getElementById('search-input');
