@@ -491,7 +491,7 @@
       state.editor = monaco.editor.create(container, {
         value: '// Welcome to C++ Mastery!\n// Select a lesson to start coding.\n\n#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello, C++!" << endl;\n    return 0;\n}\n',
         language: 'cpp',
-        theme: state.settings.theme === 'dark' ? 'cpp-mastery-dark' : 'cpp-mastery-light',
+        theme: (state.settings.theme === 'light' || state.settings.theme === 'vscode-light') ? 'cpp-mastery-light' : 'cpp-mastery-dark',
         fontSize: state.settings.fontSize,
         fontFamily: "'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace",
         fontLigatures: true,
