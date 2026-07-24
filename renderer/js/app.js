@@ -2183,7 +2183,7 @@
     lessons.forEach(function (lesson) {
       var exList = normalizeExerciseData(lesson);
       var card = document.createElement('div');
-      card.className = 'practice-card glass-card';
+      card.className = 'practice-card glass-card' + (isExerciseCompleted(lesson.id) ? ' completed' : '');
 
       var isDone = isExerciseCompleted(lesson.id);
 
