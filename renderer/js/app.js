@@ -386,9 +386,10 @@
   // Theme
   // =========================================================================
   function applyTheme() {
-    document.documentElement.setAttribute('data-theme', state.settings.theme);
-    var checkbox = document.getElementById('theme-checkbox');
-    if (checkbox) checkbox.checked = state.settings.theme === 'light';
+    var theme = state.settings.theme || 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+    var sel = document.getElementById('theme-select');
+    if (sel) sel.value = theme;
   }
 
   // =========================================================================
