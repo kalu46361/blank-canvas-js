@@ -744,12 +744,16 @@
     initResizeHandle();
 
     // Settings
-    document.getElementById('theme-checkbox').addEventListener('change', function (e) {
-      state.settings.theme = e.target.checked ? 'light' : 'dark';
-      applyTheme();
-      updateEditorTheme();
-      saveSettings();
-    });
+    var themeSelect = document.getElementById('theme-select');
+    if (themeSelect) {
+      themeSelect.value = state.settings.theme || 'dark';
+      themeSelect.addEventListener('change', function (e) {
+        state.settings.theme = e.target.value;
+        applyTheme();
+        updateEditorTheme();
+        saveSettings();
+      });
+    }
 
     document.getElementById('btn-font-decrease').addEventListener('click', function () {
       if (state.settings.fontSize > 10) {
