@@ -1311,6 +1311,7 @@
   function renderQuiz(quizData) {
     var container = document.getElementById('quiz-container');
     container.innerHTML = '';
+    var lessonId = state.currentLesson ? state.currentLesson.id : null;
 
     quizData.forEach(function (q, qIdx) {
       var card = document.createElement('div');
@@ -1324,43 +1325,21 @@
       var optionsDiv = document.createElement('div');
       optionsDiv.className = 'quiz-options';
 
+      var savedAnswer = lessonId && state.progress.quizAnswers
+        ? state.progress.quizAnswers[lessonId + '-q' + qIdx]
+        : undefined;
+
       q.options.forEach(function (opt, optIdx) {
         var optEl = document.createElement('div');
         optEl.className = 'quiz-option';
         var letters = ['A', 'B', 'C', 'D', 'E', 'F'];
         optEl.innerHTML =
           '<div class="quiz-option-marker">' + (letters[optIdx] || optIdx) + '</div>' +
-          '<span>' + escapeHtml(opt) + '</span>';
+          '<span class="quiz-option-text">' + escapeHtml(opt) + '</span>';
 
         optEl.addEventListener('click', function () {
           if (optEl.classList.contains('disabled')) return;
-
-          // Disable all options
-          optionsDiv.querySelectorAll('.quiz-option').forEach(function (o) {
-            o.classList.add('disabled');
-          });
-
-          var isCorrect = optIdx === q.correctIndex;
-          optEl.classList.add(isCorrect ? 'correct' : 'incorrect');
-
-          // Highlight correct answer if wrong
-          if (!isCorrect) {
-            optionsDiv.querySelectorAll('.quiz-option')[q.correctIndex].classList.add('correct');
-          }
-
-          // Show explanation
-          var explanation = document.createElement('div');
-          explanation.className = 'quiz-explanation ' + (isCorrect ? 'correct' : 'incorrect');
-          explanation.textContent = (isCorrect ? '✅ Correct! ' : '❌ Incorrect. ') + (q.explanation || '');
-          card.appendChild(explanation);
-
-          // Track quiz completion
-          if (state.currentLesson && isCorrect) {
-            if (state.progress.completedQuizzes.indexOf(state.currentLesson.id + '-q' + qIdx) === -1) {
-              state.progress.completedQuizzes.push(state.currentLesson.id + '-q' + qIdx);
-              saveProgress();
-            }
-          }
+          revealQuizAnswer(optionsDiv, card, q, qIdx, optIdx, true);
         });
 
         optionsDiv.appendChild(optEl);
@@ -1368,8 +1347,41 @@
 
       card.appendChild(optionsDiv);
       container.appendChild(card);
+
+      // Restore prior answer if any
+      if (savedAnswer !== undefined && savedAnswer !== null) {
+        revealQuizAnswer(optionsDiv, card, q, qIdx, savedAnswer, false);
+      }
     });
   }
+
+  function revealQuizAnswer(optionsDiv, card, q, qIdx, optIdx, persist) {
+    var opts = optionsDiv.querySelectorAll('.quiz-option');
+    opts.forEach(function (o) { o.classList.add('disabled'); });
+
+    var isCorrect = optIdx === q.correctIndex;
+    if (opts[optIdx]) opts[optIdx].classList.add(isCorrect ? 'correct' : 'incorrect', 'user-picked');
+    if (!isCorrect && opts[q.correctIndex]) opts[q.correctIndex].classList.add('correct');
+
+    // Remove any prior explanation to avoid duplicates on restore
+    var oldEx = card.querySelector('.quiz-explanation');
+    if (oldEx) oldEx.remove();
+
+    var explanation = document.createElement('div');
+    explanation.className = 'quiz-explanation ' + (isCorrect ? 'correct' : 'incorrect');
+    explanation.innerHTML = (isCorrect ? '<strong>✓ Correct.</strong> ' : '<strong>✗ Incorrect.</strong> ') + escapeHtml(q.explanation || '');
+    card.appendChild(explanation);
+
+    if (persist && state.currentLesson) {
+      state.progress.quizAnswers = state.progress.quizAnswers || {};
+      state.progress.quizAnswers[state.currentLesson.id + '-q' + qIdx] = optIdx;
+      if (isCorrect && state.progress.completedQuizzes.indexOf(state.currentLesson.id + '-q' + qIdx) === -1) {
+        state.progress.completedQuizzes.push(state.currentLesson.id + '-q' + qIdx);
+      }
+      saveProgress();
+    }
+  }
+
 
   // =========================================================================
   // Compile & Run
@@ -1764,16 +1776,18 @@
             saveProgress();
             showToast('Exercise completed! 🎉', 'success');
           }
+          // Reveal hints with green tick on success
+          revealHintsSuccess();
           // Also complete the lesson if ALL checkable exercises have passed
           if (isExerciseCompleted(executionContext.lessonId)) {
             completeLesson(executionContext.lessonId);
           }
         } else {
           // "Running the canonical codeExample successfully does NOT auto-complete the lesson." - Phase C
-          // So we do NOT completeLesson here for examples.
         }
       }
     } else if (status === 'FAIL') {
+
       verifyContent.className = 'verification-content fail';
 
       var header = document.createElement('div');
