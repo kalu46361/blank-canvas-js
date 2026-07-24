@@ -2205,7 +2205,7 @@
   function renderPractice(difficulty) {
     var grid = document.getElementById('practice-grid');
     grid.innerHTML = '';
-    grid.classList.add('stagger-children');
+    grid.classList.remove('stagger-children');
 
     var lessons = getAllLessons().filter(function (l) {
       var exList = normalizeExerciseData(l);
@@ -2224,36 +2224,64 @@
       return;
     }
 
-    lessons.forEach(function (lesson) {
-      var exList = normalizeExerciseData(lesson);
-      var card = document.createElement('div');
-      card.className = 'practice-card glass-card' + (isExerciseCompleted(lesson.id) ? ' completed' : '');
+    // Group by chapter
+    var groups = {};
+    var order = [];
+    lessons.forEach(function (l) {
+      var key = String(l.chapterId);
+      if (!groups[key]) {
+        groups[key] = { chapterId: l.chapterId, chapterTitle: l.chapterTitle, chapterIcon: l.chapterIcon, lessons: [] };
+        order.push(key);
+      }
+      groups[key].lessons.push(l);
+    });
+    order.sort(function (a, b) { return Number(a) - Number(b); });
 
-      var isDone = isExerciseCompleted(lesson.id);
+    order.forEach(function (key) {
+      var g = groups[key];
+      var section = document.createElement('section');
+      section.className = 'practice-chapter-group';
+      section.innerHTML =
+        '<header class="practice-chapter-header">' +
+          '<span class="practice-chapter-icon">' + (g.chapterIcon || '📘') + '</span>' +
+          '<div>' +
+            '<div class="practice-chapter-eyebrow">Chapter ' + g.chapterId + '</div>' +
+            '<h2 class="practice-chapter-title">' + escapeHtml(g.chapterTitle || '') + '</h2>' +
+          '</div>' +
+          '<span class="practice-chapter-count">' + g.lessons.length + ' exercise' + (g.lessons.length !== 1 ? 's' : '') + '</span>' +
+        '</header>' +
+        '<div class="practice-chapter-grid stagger-children"></div>';
+      var chGrid = section.querySelector('.practice-chapter-grid');
 
-      var badgeHtml = exList.length > 1 ? '<span class="practice-ex-count" style="font-size:0.7em; background:var(--bg-secondary); padding:2px 6px; border-radius:10px; margin-left:8px;">' + exList.length + ' exercises</span>' : '';
+      g.lessons.forEach(function (lesson) {
+        var exList = normalizeExerciseData(lesson);
+        var card = document.createElement('div');
+        var isDone = isExerciseCompleted(lesson.id);
+        card.className = 'practice-card glass-card' + (isDone ? ' completed' : '');
+        var badgeHtml = exList.length > 1 ? '<span class="practice-ex-count">' + exList.length + ' exercises</span>' : '';
 
-      card.innerHTML =
-        '<div class="practice-card-chapter">Chapter ' + lesson.chapterId + '</div>' +
-        '<div class="practice-card-title">' + escapeHtml(lesson.title) + badgeHtml + '</div>' +
-        '<div class="practice-card-instruction">' + escapeHtml(exList[0].instruction) + '</div>' +
-        '<div class="practice-card-footer">' +
-          '<span class="practice-card-difficulty ' + (lesson.difficulty || 'beginner') + '">' + capitalize(lesson.difficulty || 'beginner') + '</span>' +
-          '<span class="practice-card-status">' + (isDone ? '✅' : '⬜') + '</span>' +
-        '</div>';
+        card.innerHTML =
+          '<div class="practice-card-title">' + escapeHtml(lesson.title) + badgeHtml + '</div>' +
+          '<div class="practice-card-instruction">' + escapeHtml(exList[0].instruction) + '</div>' +
+          '<div class="practice-card-footer">' +
+            '<span class="practice-card-difficulty ' + (lesson.difficulty || 'beginner') + '">' + capitalize(lesson.difficulty || 'beginner') + '</span>' +
+            '<span class="practice-card-status">' + (isDone ? '✓ Completed' : '○ Not started') + '</span>' +
+          '</div>';
 
-      card.addEventListener('click', function () {
-        openLesson(lesson.id);
-        setTimeout(function () {
-          setEditorCode(exList[0].starterCode);
-          state.originalCode = exList[0].starterCode;
-          state.editorMode = 'exercise';
-          state.activeExerciseIndex = 0;
-          state.openEndedRunCompleted = false;
-        }, 200);
+        card.addEventListener('click', function () {
+          openLesson(lesson.id);
+          setTimeout(function () {
+            setEditorCode(exList[0].starterCode);
+            state.originalCode = exList[0].starterCode;
+            state.editorMode = 'exercise';
+            state.activeExerciseIndex = 0;
+            state.openEndedRunCompleted = false;
+          }, 200);
+        });
+
+        chGrid.appendChild(card);
       });
-
-      grid.appendChild(card);
+      grid.appendChild(section);
     });
   }
 
