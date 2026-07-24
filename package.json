@@ -5,6 +5,8 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "build:dev": "echo \"Electron app — no web build step needed\"",
+    "build": "echo \"Electron app — no web build step needed\"",
     "dev": "electron . --dev",
     "validate": "node validate_curriculum.js",
     "check:syntax": "node --check main.js && node --check preload.js && node --check renderer/js/app.js && node --check renderer/js/checker.js && node --check validate_curriculum.js && node --check lib/execution-manager.js",
