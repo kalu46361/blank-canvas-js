@@ -838,7 +838,12 @@
       var minW = 320;
       var maxW = container.offsetWidth - 400;
       newWidth = Math.max(minW, Math.min(maxW, newWidth));
+      // Lock the content panel to an explicit basis so flex:1 siblings don't fight the drag.
+      contentPanel.style.flex = '0 0 ' + newWidth + 'px';
       contentPanel.style.width = newWidth + 'px';
+      if (state.editor && state.editor.layout) {
+        state.editor.layout();
+      }
     });
 
     document.addEventListener('mouseup', function () {
