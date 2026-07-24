@@ -873,13 +873,35 @@ kbd {
 }
 
 .resize-handle-vertical {
-  height: 4px;
+  position: relative;
+  height: 6px;
   cursor: row-resize;
   background: transparent;
   flex-shrink: 0;
-  transition: background var(--dur-fast) var(--ease);
+  z-index: 5;
 }
-.resize-handle-vertical:hover { background: var(--brand-soft); }
+.resize-handle-vertical::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 1px;
+  background: var(--border-hair);
+  transition: background var(--dur-fast) var(--ease), height var(--dur-fast) var(--ease);
+}
+.resize-handle-vertical::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0;
+  top: -4px; bottom: -4px;
+}
+.resize-handle-vertical:hover::before,
+.resize-handle-vertical.active::before {
+  background: var(--brand);
+  height: 2px;
+  box-shadow: 0 0 0 4px var(--brand-soft);
+}
 
 .output-panel {
   height: 260px;
